@@ -33,6 +33,7 @@ export const defaultValues: CreateChurchFormType = {
 
 
 export const createChurchSchema = z.object({
+  parish_id: z.string().optional(), // Added for editing existing churches
   parish_name: z.string().min(1, "Parish Name is required"),
   diocese: z.string().optional(),
   address_line1: z.string().optional(),
@@ -49,7 +50,7 @@ export const createChurchSchema = z.object({
   timezone: z.optional(dropDownSchemaOpt), // Assuming timezone will be a dropdown
   subscription_plan: z.optional(z.object({
     label: z.string(),
-    value: z.enum(['basic', 'premium', 'enterprise']),
+    value: z.enum(['free', 'basic', 'premium', 'enterprise']),
   })), // Aligned with backend enum
   subscription_expiry: z.string().optional(),
   admin_email: z
@@ -126,6 +127,7 @@ export const createChurchSchema = z.object({
 export type CreateChurchFormType = z.infer<typeof createChurchSchema>;
 
 export interface CreateChurchRequestBody {
+  parish_id?: string; // Added for editing existing churches
   parish_name: string;
   diocese?: string;
   address_line1?: string;

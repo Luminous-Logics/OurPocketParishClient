@@ -43,6 +43,7 @@ const PARISHIONERS = {
 };
 const PARISH = {
   LIST: "/parishes",
+  DETAILS: (parishId: string) => `/parishes/${parishId}`,
 };
 export const API_ENDPOINTS = {
   AUTH,

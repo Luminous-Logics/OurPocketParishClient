@@ -1,75 +1,151 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Edit2, Plus, Trash2 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/hooks";
 import { fetchParishesList } from "@/store/slices/church";
 import StoreProvider from "@/store/provider";
 import CreateChurchModal from "../Modal/CreateChurchModal";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import Button from "../Button";
 import {
-  CreateChurchFormType,
-  createChurchSchema,
-  defaultValues,
+  CreateChurchRequestBody,
 } from "./Schema";
-import { createParish } from "@/lib/actions/church";
+import { createParish, updateParish, deleteParish } from "@/lib/actions/church";
+import { toast } from "react-toastify";
+import { RootState } from "@/store";
+import ConfirmationModal from "../Modal/ConfirmationModal";
 
 const ChurchComp = () => {
   const dispatch = useAppDispatch();
   const { parishesList } = useAppSelector((state) => state.church);
+  const { userProfile } = useAppSelector((state: RootState) => state.profile);
 
-  const [isLoadingParishList, setIsLoadingParishList] = useState(true);
-  const [isAddChurchModalOpen, setIsAddChurchModalOpen] = useState(false);
-  const [isCreatingChurch, setIsCreatingChurch] = useState(false);
-
-  const hookForm = useForm<CreateChurchFormType>({
-    resolver: zodResolver(createChurchSchema),
-    defaultValues: defaultValues,
+  // Consolidated modal state
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    mode: 'create' | 'edit';
+    data: CreateChurchRequestBody | null;
+    isSubmitting: boolean;
+  }>({
+    isOpen: false,
+    mode: 'create',
+    data: null,
+    isSubmitting: false,
   });
 
-  const handleAddChurch = async (data: CreateChurchFormType) => {
-    setIsCreatingChurch(true);
-    console.log("Submitting church data:", data);
+  // Delete confirmation state
+  const [deleteState, setDeleteState] = useState<{
+    isOpen: boolean;
+    parishId: string | null;
+    isDeleting: boolean;
+  }>({
+    isOpen: false,
+    parishId: null,
+    isDeleting: false,
+  });
 
-    const transformedData = {
-      ...data,
-      timezone: data.timezone?.value || "UTC",
-      subscription_plan: data.subscription_plan?.value || "",
-    };
+  const [isLoadingParishList, setIsLoadingParishList] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
-    const res = await createParish(transformedData);
-    console.log("Church creation response:", res);
-    setIsCreatingChurch(false);
-    setIsAddChurchModalOpen(false);
-    hookForm.reset();
-    dispatch(fetchParishesList());
-  };
+  // Memoized stats calculation
+  const stats = useMemo(() => {
+    const total = parishesList?.length || 0;
+    const active = parishesList?.filter((p) => p.is_active)?.length || 0;
+    
+    return [
+      { label: "Total Parishes", value: total, color: "text-gray-800" },
+      { label: "Active", value: active, color: "text-blue-600" },
+      { label: "Pending Approval", value: total - active, color: "text-yellow-600" },
+      { label: "Total Subscribers", value: total, color: "text-gray-800" },
+    ];
+  }, [parishesList]);
 
-  const stats = [
-    {
-      label: "Total Parishes",
-      value: parishesList?.length || 0,
-      color: "text-gray-800",
-    },
-    {
-      label: "Active",
-      value: parishesList?.filter((p) => p.is_active)?.length || 0,
-      color: "text-blue-600",
-    },
-    {
-      label: "Pending Approval",
-      value: parishesList?.filter((p) => !p.is_active)?.length || 0,
-      color: "text-yellow-600",
-    },
-    {
-      label: "Total Subscribers",
-      value: parishesList?.length || 0,
-      color: "text-gray-800",
-    },
-  ];
+  // Memoized filtered parishes
+  const filteredParishes = useMemo(() => {
+    if (!searchQuery.trim()) return parishesList;
+    
+    const query = searchQuery.toLowerCase();
+    return parishesList?.filter((parish) =>
+      parish.parish_name?.toLowerCase().includes(query) ||
+      parish.diocese?.toLowerCase().includes(query) ||
+      parish.city?.toLowerCase().includes(query)
+    );
+  }, [parishesList, searchQuery]);
 
+  // Memoized callbacks
+  const handleOpenCreateModal = useCallback(() => {
+    setModalState({
+      isOpen: true,
+      mode: 'create',
+      data: null,
+      isSubmitting: false,
+    });
+  }, []);
+
+  const handleOpenEditModal = useCallback((parish: CreateChurchRequestBody) => {
+    setModalState({
+      isOpen: true,
+      mode: 'edit',
+      data: parish,
+      isSubmitting: false,
+    });
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setModalState(prev => ({ ...prev, isOpen: false }));
+  }, []);
+
+  const handleSubmit = useCallback(async (data: any) => {
+    setModalState(prev => ({ ...prev, isSubmitting: true }));
+
+    try {
+      const transformedData = {
+        ...data,
+        timezone: data.timezone?.value || "UTC",
+        subscription_plan: data.subscription_plan?.value || "",
+      };
+
+      if (modalState.mode === 'edit' && modalState.data?.parish_id) {
+        await updateParish(modalState.data.parish_id, transformedData);
+        toast.success("Church updated successfully");
+      } else {
+        await createParish(transformedData);
+        toast.success("Church created successfully");
+      }
+
+      dispatch(fetchParishesList());
+      setModalState({ isOpen: false, mode: 'create', data: null, isSubmitting: false });
+    } catch (error: any) {
+      toast.error(error.message || "Operation failed");
+      setModalState(prev => ({ ...prev, isSubmitting: false }));
+    }
+  }, [modalState.mode, modalState.data, dispatch]);
+
+  const handleOpenDeleteConfirmation = useCallback((parishId: string) => {
+    setDeleteState({
+      isOpen: true,
+      parishId,
+      isDeleting: false,
+    });
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteState.parishId) return;
+
+    setDeleteState(prev => ({ ...prev, isDeleting: true }));
+
+    try {
+      await deleteParish(deleteState.parishId);
+      toast.success("Parish deleted successfully");
+      dispatch(fetchParishesList());
+      setDeleteState({ isOpen: false, parishId: null, isDeleting: false });
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete parish");
+      setDeleteState(prev => ({ ...prev, isDeleting: false }));
+    }
+  }, [deleteState.parishId, dispatch]);
+
+  // Fetch parishes on mount
   useEffect(() => {
     const fetchParishList = async () => {
       setIsLoadingParishList(true);
@@ -79,6 +155,8 @@ const ChurchComp = () => {
 
     fetchParishList();
   }, [dispatch]);
+
+  const isSuperAdmin = userProfile?.user.user_type === "SUPER_ADMIN";
 
   return (
     <div className="church-management-container">
@@ -91,20 +169,20 @@ const ChurchComp = () => {
         <Button
           variant="primary"
           icon={<Plus size={16} />}
-          onClick={() => setIsAddChurchModalOpen(true)}
+          onClick={handleOpenCreateModal}
         >
           Add Church
         </Button>
       </div>
 
+      {/* Modal */}
       <CreateChurchModal
-        isOpen={isAddChurchModalOpen}
-        onClose={() => {
-          setIsAddChurchModalOpen(false);
-          hookForm.reset(); // Reset form when closing modal
-        }}
-        isCreating={isCreatingChurch}
-        onSubmit={handleAddChurch}
+        isOpen={modalState.isOpen}
+        onClose={handleCloseModal}
+        isCreating={modalState.isSubmitting}
+        onSubmit={handleSubmit}
+        initialValues={modalState.data}
+        isEditMode={modalState.mode === 'edit'}
       />
 
       {/* Stats Grid */}
@@ -136,6 +214,8 @@ const ChurchComp = () => {
           <input
             type="text"
             placeholder="Search by parish name, diocese, or city..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
@@ -144,7 +224,7 @@ const ChurchComp = () => {
       <div className="table-container">
         {isLoadingParishList ? (
           <p className="text-center py-4">Loading parishes...</p>
-        ) : parishesList && parishesList.length > 0 ? (
+        ) : filteredParishes && filteredParishes.length > 0 ? (
           <table className="church-table">
             <thead>
               <tr>
@@ -159,7 +239,7 @@ const ChurchComp = () => {
               </tr>
             </thead>
             <tbody>
-              {parishesList.map((parish: any) => (
+              {filteredParishes.map((parish: any) => (
                 <tr key={parish.parish_id}>
                   <td>{parish.parish_name}</td>
                   <td>{parish.diocese}</td>
@@ -189,12 +269,22 @@ const ChurchComp = () => {
                   </td>
                   <td>
                     <div className="action-buttons">
-                      <button className="action-button icon-button edit-button">
+                      <button
+                        className="action-button icon-button edit-button"
+                        onClick={() => handleOpenEditModal(parish)}
+                        aria-label="Edit parish"
+                      >
                         <Edit2 size={16} />
                       </button>
-                      <button className="action-button icon-button delete-button">
-                        <Trash2 size={16} />
-                      </button>
+                      {isSuperAdmin && (
+                        <button
+                          className="action-button icon-button delete-button"
+                          onClick={() => handleOpenDeleteConfirmation(parish.parish_id)}
+                          aria-label="Delete parish"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -202,9 +292,21 @@ const ChurchComp = () => {
             </tbody>
           </table>
         ) : (
-          <p className="text-center py-4 text-gray-500">No parishes found.</p>
+          <p className="text-center py-4 text-gray-500">
+            {searchQuery ? "No parishes match your search." : "No parishes found."}
+          </p>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteState.isOpen}
+        onClose={() => setDeleteState({ isOpen: false, parishId: null, isDeleting: false })}
+        onConfirm={handleConfirmDelete}
+        title="Confirm Deletion"
+        message="Are you sure you want to soft delete this parish? This action cannot be undone."
+        isLoading={deleteState.isDeleting}
+      />
     </div>
   );
 };

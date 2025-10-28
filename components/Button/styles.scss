@@ -60,6 +60,15 @@
   }
 }
 
+.btn-danger {
+  background-color: var(--danger);
+  color: var(--primary-foreground); /* Assuming white text for danger button */
+
+  &:hover:not(:disabled) {
+    background-color: var(--danger-hover); /* Use the new CSS variable for hover */
+  }
+}
+
 .btn-ghost {
   background-color: transparent;
   color: var(--foreground);

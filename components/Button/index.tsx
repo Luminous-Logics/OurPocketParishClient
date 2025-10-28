@@ -3,7 +3,7 @@ import "./styles.scss";
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "outline" | "ghost" | "secondary";
+  variant?: "primary" | "outline" | "ghost" | "secondary" | "danger";
   icon?: React.ReactNode;
   iconPosition?: "left" | "right";
   isLoading?: boolean;

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 import React, { useState } from "react";
 import ReactModal from "react-modal";
@@ -13,6 +14,7 @@ import {
   CreateChurchFormType,
   createChurchSchema,
   defaultValues,
+  CreateChurchRequestBody,
 } from "../ChurchManagment/Schema";
 
 interface CreateChurchModalProps {
@@ -21,9 +23,8 @@ interface CreateChurchModalProps {
   isCreating: boolean;
   onSubmit: (data: CreateChurchFormType) => Promise<void>;
   isEditMode?: boolean;
+  initialValues?: CreateChurchRequestBody | null;
 }
-
-const steps = ["Basic Info", "Address", "Subscription", "Admin User"];
 
 const timezoneOptions = [
   { label: "America/Chicago", value: "America/Chicago" },
@@ -34,7 +35,7 @@ const timezoneOptions = [
   // Add more timezone options as needed
 ];
 
-const subscriptionPlanOptions = [
+const subscriptionPlanOptions: { label: string; value: "free" | "basic" | "premium" | "enterprise" }[] = [
   { label: "Free", value: "free" },
   { label: "Basic", value: "basic" },
   { label: "Premium", value: "premium" },
@@ -47,12 +48,47 @@ const CreateChurchModal: React.FC<CreateChurchModalProps> = ({
   isCreating,
   onSubmit,
   isEditMode = false,
+  initialValues,
 }) => {
+  const baseSteps = ["Basic Info", "Address", "Subscription", "Admin User"];
+  const steps = isEditMode
+    ? baseSteps.filter((step) => step !== "Admin User")
+    : baseSteps;
+
   const [currentStep, setCurrentStep] = useState(0);
   const hookForm = useForm<CreateChurchFormType>({
     resolver: zodResolver(createChurchSchema),
     defaultValues: defaultValues,
   });
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setCurrentStep(0); // Reset to the first step when modal opens
+      if (initialValues) {
+        const transformedInitialValues: CreateChurchFormType = {
+          ...initialValues,
+          timezone: initialValues.timezone
+            ? timezoneOptions.find((option) => option.value === initialValues.timezone)
+            : undefined,
+          subscription_plan: initialValues.subscription_plan
+            ? subscriptionPlanOptions.find((option) => option.value === initialValues.subscription_plan)
+            : undefined,
+        };
+        hookForm.reset(transformedInitialValues);
+      } else {
+        hookForm.reset(defaultValues); // Reset to default when opening for add
+      }
+    } else {
+      hookForm.reset(defaultValues); // Reset to default when modal closes
+    }
+  }, [isOpen, initialValues, hookForm]);
+
+  // Adjust currentStep if it points to the removed "Admin User" tab in edit mode
+  React.useEffect(() => {
+    if (isEditMode && currentStep === baseSteps.indexOf("Admin User")) {
+      setCurrentStep(steps.length - 1); // Move to the last available step
+    }
+  }, [isEditMode, currentStep, baseSteps, steps.length]);
 
   const {
     handleSubmit,
@@ -62,7 +98,9 @@ const CreateChurchModal: React.FC<CreateChurchModalProps> = ({
 
   const handleNext = async () => {
     let isValid = false;
-    if (currentStep === 0) {
+    const currentStepName = steps[currentStep];
+
+    if (currentStepName === "Basic Info") {
       isValid = await trigger([
         "parish_name",
         "diocese",
@@ -72,7 +110,7 @@ const CreateChurchModal: React.FC<CreateChurchModalProps> = ({
         "email",
         "timezone",
       ]);
-    } else if (currentStep === 1) {
+    } else if (currentStepName === "Address") {
       isValid = await trigger([
         "address_line1",
         "city",
@@ -80,7 +118,7 @@ const CreateChurchModal: React.FC<CreateChurchModalProps> = ({
         "country",
         "postal_code",
       ]);
-    } else if (currentStep === 2) {
+    } else if (currentStepName === "Subscription") {
       isValid = await trigger(["subscription_plan", "subscription_expiry"]);
     }
     // No validation needed for the last step before moving to next (it's the submit step)
@@ -150,7 +188,7 @@ const CreateChurchModal: React.FC<CreateChurchModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} id="create-church-form">
-          {currentStep === 0 && (
+          {currentStep === steps.indexOf("Basic Info") && (
             <div className="step-content">
               <div className="row g-3">
                 <div className="col-md-6">
@@ -236,7 +274,7 @@ const CreateChurchModal: React.FC<CreateChurchModalProps> = ({
             </div>
           )}
 
-          {currentStep === 1 && (
+          {currentStep === steps.indexOf("Address") && (
             <div className="step-content">
               <div className="row g-3">
                 <div className="col-12">
@@ -302,7 +340,7 @@ const CreateChurchModal: React.FC<CreateChurchModalProps> = ({
             </div>
           )}
 
-          {currentStep === 2 && (
+          {currentStep === steps.indexOf("Subscription") && (
             <div className="step-content">
               <div className="row g-3">
                 <div className="col-md-6">
@@ -329,7 +367,7 @@ const CreateChurchModal: React.FC<CreateChurchModalProps> = ({
             </div>
           )}
 
-          {currentStep === 3 && (
+          {currentStep === steps.indexOf("Admin User") && (
             <div className="step-content">
               <div className="row g-3">
                 <div className="col-md-6">
