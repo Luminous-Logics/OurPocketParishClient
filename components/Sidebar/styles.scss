@@ -91,6 +91,32 @@
   flex: 1;
 }
 
+.sidebar-footer {
+  padding: 16px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: auto; /* Pushes the footer to the bottom */
+}
+
+.sidebar-logout-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 0.5rem;
+  background: var(--sidebar-accent);
+  color: rgba(255, 255, 255, 1);
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    background: #3a4a60; /* A slightly darker shade, assuming --sidebar-accent is a blue-ish color */
+  }
+}
+
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);

@@ -5,6 +5,7 @@ import wards from "./slices/wards";
 import families from "./slices/families";
 import parishioners from "./slices/parishioners";
 import church from "./slices/church";
+import bible from "./slices/bible";
 
 export const makeStore = () =>
   configureStore({
@@ -14,7 +15,8 @@ export const makeStore = () =>
       wards,
       families,
       parishioners,
-      church
+      church,
+      bible
     },
   });
 

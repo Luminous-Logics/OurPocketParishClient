@@ -14,6 +14,7 @@ import {
   closePrayerRequest,
   createPrayerRequest
 } from "@/lib/actions/prayer-request";
+import { Permission } from "@/types";
 import StoreProvider from "@/store/provider";
 
 // Set app element for accessibility
@@ -50,6 +51,12 @@ const PrayerRequestsPageComp = () => {
   const profile = useAppSelector((state) => state.profile.userProfile);
   const parishId = Number(profile?.parish?.parish_id) || 1;
 
+  // Get user permissions from profile
+  const userPermissions = profile?.permissions || [];
+  const canApprovePrayerRequests = userPermissions.some(
+    (permission: Permission) => permission.permission_code === "APPROVE_PRAYER_REQUESTS"
+  );
+console.log(canApprovePrayerRequests)
   // Fetch active prayer requests
   useEffect(() => {
     if (!parishId) return;
@@ -332,7 +339,7 @@ const PrayerRequestsPageComp = () => {
                   </p>
                 </div>
                 <div className="prayer-actions">
-                  {activeTab === "active" && (
+                  {activeTab === "active" && canApprovePrayerRequests && (
                     <>
                       {request.status !== "confirmed" && (
                         <button

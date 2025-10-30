@@ -1,10 +1,10 @@
-import Church from '@/components/ChurchManagment'
-import React from 'react'
-import './styles.scss'
-const Page = () => {
-  return (
-   <Church />
-  )
-}
+import React from "react";
 
-export default Page
+import "./styles.scss";
+import Church from "@/components/ChurchManagment";
+
+const Page = () => {
+  return <Church />;
+};
+
+export default Page;

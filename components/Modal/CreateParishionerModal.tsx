@@ -9,6 +9,7 @@ import InputDropDown from "../InputComponents/InputDropDown";
 import InputDatePicker from "../InputComponents/InputDatePicker";
 import "./styles.scss";
 import { CreateParishionerFormType } from "@/zod";
+import { Parishioner } from "@/types"; // Import Parishioner type
 
 interface CreateParishionerModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface CreateParishionerModalProps {
   isCreating: boolean;
   onSubmit: (data: CreateParishionerFormType) => Promise<void>;
   isEditMode?: boolean;
+  initialValues?: Parishioner | null; // New prop for initial values
   wards: { label: string; value: string }[];
   parishId: number;
   familyId: number;
@@ -29,16 +31,91 @@ const CreateParishionerModal: React.FC<CreateParishionerModalProps> = ({
   isCreating,
   onSubmit,
   isEditMode = false,
+  initialValues = null, // Default to null
   wards,
   parishId,
   familyId,
 }) => {
-  const { handleSubmit, formState: { errors }, setValue } = hookForm;
+  const { handleSubmit, formState: { errors }, reset } = hookForm;
 
   React.useEffect(() => {
-    setValue("parish_id", parishId);
-    setValue("family_id", familyId);
-  }, [parishId, familyId, setValue]);
+    if (isEditMode && initialValues) {
+      // Pre-populate form fields for editing
+      reset({
+        ...initialValues,
+        parish_id: Number(initialValues.parish_id), // Convert to number
+        family_id: Number(initialValues.family_id), // Convert to number
+        ward_id: initialValues.ward_id
+          ? {
+              label:
+                wards.find((w) => w.value === String(initialValues.ward_id))
+                  ?.label || String(initialValues.ward_id),
+              value: String(initialValues.ward_id),
+            }
+          : { label: "", value: "" },
+        gender: initialValues.gender
+          ? { label: initialValues.gender, value: initialValues.gender }
+          : { label: "", value: "" },
+        marital_status: initialValues.marital_status
+          ? {
+              label: initialValues.marital_status,
+              value: initialValues.marital_status,
+            }
+          : { label: "", value: "" },
+        // Dates need to be handled carefully if they are Date objects or specific string formats
+        date_of_birth: initialValues.date_of_birth
+          ? new Date(initialValues.date_of_birth).toISOString()
+          : undefined,
+        baptism_date: initialValues.baptism_date
+          ? new Date(initialValues.baptism_date).toISOString()
+          : undefined,
+        first_communion_date: initialValues.first_communion_date
+          ? new Date(initialValues.first_communion_date).toISOString()
+          : undefined,
+        confirmation_date: initialValues.confirmation_date
+          ? new Date(initialValues.confirmation_date).toISOString()
+          : undefined,
+        marriage_date: initialValues.marriage_date
+          ? new Date(initialValues.marriage_date).toISOString()
+          : undefined,
+        registration_date: initialValues.registration_date
+          ? new Date(initialValues.registration_date).toISOString()
+          : undefined,
+      });
+    } else {
+      // Reset for creation
+      reset({
+        parish_id: parishId,
+        family_id: familyId,
+        email: "",
+        first_name: "",
+        last_name: "",
+        phone: "",
+        ward_id: { value: "", label: "" },
+        middle_name: "",
+        occupation: "",
+        member_status: "active",
+        photo_url: "",
+        address_line1: "",
+        address_line2: "",
+        city: "",
+        state: "",
+        country: "",
+        postal_code: "",
+        emergency_contact_name: "",
+        emergency_contact_phone: "",
+        notes: "",
+        date_of_birth: undefined,
+        baptism_date: undefined,
+        first_communion_date: undefined,
+        confirmation_date: undefined,
+        marriage_date: undefined,
+        registration_date: undefined,
+        gender: { label: "", value: "" },
+        marital_status: { label: "", value: "" },
+      });
+    }
+  }, [isEditMode, initialValues, parishId, familyId, reset, wards]);
 
   console.log(errors);
 
@@ -113,17 +190,6 @@ const CreateParishionerModal: React.FC<CreateParishionerModalProps> = ({
                 labelMandatory
                 errorText="Email is required"
                 placeholder="e.g., john.doe@example.com"
-              />
-            </div>
-            <div className="col-md-6">
-              <InputText
-                hookForm={hookForm}
-                field="password"
-                label="Password"
-                labelMandatory
-                errorText="Password is required"
-                type="password"
-                placeholder="SecurePass123!"
               />
             </div>
             <div className="col-md-6">

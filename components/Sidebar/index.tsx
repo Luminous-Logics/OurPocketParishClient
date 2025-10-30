@@ -12,6 +12,7 @@ import {
   hasAnyPermission,
   MenuKey,
 } from "@/constants/permissions";
+import { logoutAction } from "@/lib/actions/auth";
 
 export interface SidebarItem {
   label: string;
@@ -30,7 +31,7 @@ export interface SidebarProps {
 const SideBarComp = ({
   items,
   logo,
-  logoText = "Parish Connect",
+  logoText = "Our Pocket Church",
   className = "",
 }: SidebarProps) => {
   const pathname = usePathname();
@@ -48,7 +49,11 @@ const SideBarComp = ({
 
   // Generate menu permissions dynamically from grouped permissions
   const menuPermissions = useMemo(() => {
-    if (!permissionsLoaded || !groupedPermissions || Object.keys(groupedPermissions).length === 0) {
+    if (
+      !permissionsLoaded ||
+      !groupedPermissions ||
+      Object.keys(groupedPermissions).length === 0
+    ) {
       return {};
     }
     return generateMenuPermissions(groupedPermissions);
@@ -107,6 +112,14 @@ const SideBarComp = ({
           );
         })}
       </nav>
+      <div className="sidebar-footer">
+        <button
+          onClick={() => logoutAction()}
+          className="sidebar-logout-button"
+        >
+          Logout
+        </button>
+      </div>
     </aside>
   );
 };

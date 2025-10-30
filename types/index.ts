@@ -143,14 +143,18 @@ export interface Family {
   family_name: string;
   head_of_family?: string;
   house_name?: string; // Added
-  address?: string;
+  address_line1?: string; // Added address fields from primary contact
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postal_code?: string;
   primary_contact_id?: number;
   home_phone?: string;
   contact_number?: string; // Added
   email?: string; // Added
   registration_date?: string;
   is_active: boolean;
-  member_count?: string;
   members?: Member[]; // Added
   created_at: string;
   updated_at: string;
@@ -313,7 +317,7 @@ export interface Parishioner {
   first_name?:string;
   last_name?:string;
   email?: string; // Added from Member
-  phone_number?: string; // Added from Member
+  phone?: string; // Added from Member
   date_of_birth?: string;
   gender?: "male" | "female" | "other";
   relationship?: string; // Added from Member
@@ -461,7 +465,6 @@ export interface ParishionersByFamilyResponse {
  */
 export interface CreateParishionerRequestBody {
   email: string;
-  password: string;
   first_name: string;
   last_name: string;
   phone: string;
@@ -536,5 +539,83 @@ export interface ParishRes {
     user_type: string;
     role: string;
     is_primary_admin: boolean;
+  };
+}
+
+// ============================================
+// BIBLE API TYPES
+// ============================================
+
+/**
+ * Bible book data
+ */
+export interface BibleBook {
+  id: string;
+  bibleId: string;
+  abbreviation: string;
+  name: string;
+  nameLong: string;
+}
+
+/**
+ * Bible chapter data (list view)
+ */
+export interface BibleChapter {
+  id: string;
+  bibleId: string;
+  bookId: string;
+  number: string;
+  position: number;
+}
+
+/**
+ * Bible chapter content (full chapter with text)
+ */
+export interface BibleChapterContent {
+  id: string;
+  bibleId: string;
+  number: string;
+  bookId: string;
+  reference: string;
+  copyright: string;
+  verseCount: number;
+  content: string;
+  next?: {
+    id: string;
+    number: string;
+    bookId: string;
+  };
+  previous?: {
+    id: string;
+    number: string;
+    bookId: string;
+  };
+}
+
+/**
+ * Response for fetching Bible books
+ */
+export interface BibleBooksResponse {
+  data: BibleBook[];
+}
+
+/**
+ * Response for fetching Bible chapters (list)
+ */
+export interface BibleChaptersResponse {
+  data: BibleChapter[];
+}
+
+/**
+ * Response for fetching a single chapter with content
+ */
+export interface BibleChapterContentResponse {
+  data: BibleChapterContent;
+  meta?: {
+    fums: string;
+    fumsId: string;
+    fumsJsInclude: string;
+    fumsJs: string;
+    fumsNoScript: string;
   };
 }

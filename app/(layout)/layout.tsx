@@ -29,7 +29,7 @@ export default function DashboardLayout({
     {
       key: "dashboard",
       label: "Dashboard",
-      href: "/home",
+      href: "/dashboard",
       icon: <LayoutGrid size={18} />,
     },
     {
@@ -152,7 +152,7 @@ export default function DashboardLayout({
 
   return (
     <div className="dashboard-layout">
-      <Sidebar items={navigationItems} logo="P" logoText="Parish Connect" />
+      <Sidebar items={navigationItems} logo="P" logoText="Our Pocket Parish" />
       <main className="main-content">{children}</main>
     </div>
   );

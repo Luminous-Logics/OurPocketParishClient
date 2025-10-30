@@ -10,7 +10,7 @@ import "./styles.scss";
 
 // Validation schema
 export const createWardSchema = z.object({
-  parish_id: z.number().min(1, "Parish ID is required"),
+  parish_id: z.number().optional().nullable(),
   ward_name: z.string().min(1, "Ward Name is required"),
   ward_number: z.string().min(1, "Ward Number is required"),
   description: z.string().optional(),
@@ -106,14 +106,16 @@ const CreateWardModal: React.FC<CreateWardModalProps> = ({
               />
             </div>
 
-              <div className="col-md-6">
-                <InputText
-                  hookForm={hookForm}
-                  field="coordinator_id"
-                  label="Coordinator ID"
-                  placeholder="Optional"
-                />
-              </div>
+              {isEditMode && (
+                <div className="col-md-6">
+                  <InputText
+                    hookForm={hookForm}
+                    field="coordinator_id"
+                    label="Coordinator ID"
+                    placeholder="Optional"
+                  />
+                </div>
+              )}
             <div className="col-md-6">
               <InputText
                 hookForm={hookForm}

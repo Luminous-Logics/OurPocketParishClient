@@ -18,13 +18,18 @@ import CreateFamilyModal, {
   createFamilySchema,
   CreateFamilyFormType,
 } from "@/components/Modal/CreateFamilyModal";
-import { createFamily } from "@/lib/actions/familes";
+import {
+  createFamily,
+  updateFamily,
+  fetchFamilyById,
+} from "@/lib/actions/familes"; // Import updateFamily and fetchFamilyById
 import { fetchWardsList } from "@/store/slices/wards";
 import {
   fetchFamiliesList,
   searchFamilies,
   clearSearchResults,
 } from "@/store/slices/families";
+import { Family } from "@/types"; // Import Family type
 
 const FamiliesPageComp = () => {
   const dispatch = useAppDispatch();
@@ -34,6 +39,8 @@ const FamiliesPageComp = () => {
   const [selectedWard, setSelectedWard] = useState("all");
   const [isCreateFamilyModalOpen, setIsCreateFamilyModalOpen] = useState(false);
   const [isCreatingFamily, setIsCreatingFamily] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false); // New state for edit mode
+  const [editingFamily, setEditingFamily] = useState<Family | null>(null); // New state for family being edited
 
   const profile = useAppSelector((state) => state.profile.userProfile);
   const wardsState = useAppSelector((state) => state.wards);
@@ -50,15 +57,13 @@ const FamiliesPageComp = () => {
   } = useAppSelector((state) => state.families);
 
   const pageSize = 20;
-  const parishId = profile?.parish?.parish_id || 1;
-
+  const parishId = Number(profile?.parish?.parish_id);
+  console.log(parishId, "ssssss");
   useEffect(() => {
-    if (wardsState.wardsList.length === 0 && parishId) {
-      dispatch(fetchWardsList(Number(parishId)));
-    }
-  }, [dispatch]);
+    if (Number(parishId)) dispatch(fetchWardsList(Number(parishId)));
+  }, [dispatch, parishId]);
 
-  const formattedWardsList = wardsState.wardsList.map((ward) => ({
+  const formattedWardsList = wardsState?.wardsList?.map((ward) => ({
     label: ward.ward_name,
     value: String(ward.ward_id),
   }));
@@ -70,12 +75,16 @@ const FamiliesPageComp = () => {
       family_name: "",
       head_of_family: "",
       ward_id: { label: "", value: "" },
-      member_count: "",
       home_phone: "",
-      address: "",
+      address_line1: "",
+      address_line2: "",
+      city: "",
+      state: "",
+      country: "",
+      postal_code: "",
     },
   });
-
+  console.log(createFamilyHookForm.watch("parish_id"));
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 500);
@@ -130,16 +139,41 @@ const FamiliesPageComp = () => {
   };
 
   const handleCreateFamilyClick = () => {
+    setIsEditMode(false); // Ensure create mode
+    setEditingFamily(null); // Clear any previously editing family
     createFamilyHookForm.reset({
       parish_id: Number(parishId),
       family_name: "",
       head_of_family: "",
       ward_id: { label: "", value: "" },
-      member_count: "",
       home_phone: "",
-      address: "",
+      address_line1: "",
+      address_line2: "",
+      city: "",
+      state: "",
+      country: "",
+      postal_code: "",
     });
     setIsCreateFamilyModalOpen(true);
+  };
+
+  const handleEditFamilyClick = async (familyId: number) => {
+    setIsEditMode(true); // Set edit mode
+    setIsCreateFamilyModalOpen(true); // Open modal immediately for loading state
+    try {
+      const family = await promiseTracker(fetchFamilyById(familyId));
+      if (family) {
+        setEditingFamily(family);
+        // The useEffect in CreateFamilyModal will handle resetting the form with initialValues
+      } else {
+        toaster.error("Failed to fetch family details for editing.");
+        setIsCreateFamilyModalOpen(false); // Close modal if fetch fails
+      }
+    } catch (error) {
+      toaster.error("Failed to fetch family details. Please try again.");
+      console.error("Error fetching family:", error);
+      setIsCreateFamilyModalOpen(false); // Close modal on error
+    }
   };
 
   const onCreateFamilySubmit = async (data: CreateFamilyFormType) => {
@@ -150,14 +184,29 @@ const FamiliesPageComp = () => {
         ward_id: Number(data.ward_id.value),
         parish_id: Number(parishId),
       };
-      console.log(familyData);
-      await promiseTracker(createFamily(familyData));
-      toaster.success("Family created successfully!");
+
+      if (isEditMode && editingFamily) {
+        await promiseTracker(updateFamily(editingFamily.family_id, familyData));
+        toaster.success("Family updated successfully!");
+      } else {
+        await promiseTracker(createFamily(familyData));
+        toaster.success("Family created successfully!");
+      }
+
       setIsCreateFamilyModalOpen(false);
-      dispatch(fetchFamiliesList(Number(parishId), 1, pageSize));
+      setEditingFamily(null); // Clear editing family after submission
+      setIsEditMode(false); // Reset edit mode
+      dispatch(fetchFamiliesList(Number(parishId), 1, pageSize)); // Refresh list
     } catch (error) {
-      toaster.error("Failed to create family. Please try again.");
-      console.error("Error creating family:", error);
+      toaster.error(
+        `Failed to ${
+          isEditMode ? "update" : "create"
+        } family. Please try again.`
+      );
+      console.error(
+        `Error ${isEditMode ? "updating" : "creating"} family:`,
+        error
+      );
     } finally {
       setIsCreatingFamily(false);
     }
@@ -245,13 +294,6 @@ const FamiliesPageComp = () => {
                 </div>
 
                 <div className="family-card-body">
-                  <div className="family-detail">
-                    <span className="detail-label">Members</span>
-                    <span className="detail-value">
-                      {family.member_count || 0} people
-                    </span>
-                  </div>
-
                   {family.home_phone && (
                     <div className="family-address">
                       <Phone size={14} />
@@ -283,11 +325,16 @@ const FamiliesPageComp = () => {
                   >
                     View & Manage
                   </Button>
-                  <Button variant="ghost">Edit</Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleEditFamilyClick(family.family_id)}
+                  >
+                    Edit
+                  </Button>
                 </div>
               </Card>
             ))}
-          </div> 
+          </div>
 
           {/* Pagination */}
           {!debouncedSearchQuery && totalPages > 1 && (
@@ -326,11 +373,18 @@ const FamiliesPageComp = () => {
 
       <CreateFamilyModal
         isOpen={isCreateFamilyModalOpen}
-        onClose={() => setIsCreateFamilyModalOpen(false)}
+        onClose={() => {
+          setIsCreateFamilyModalOpen(false);
+          setIsEditMode(false); // Reset edit mode on close
+          setEditingFamily(null); // Clear editing family on close
+        }}
         hookForm={createFamilyHookForm}
         isCreating={isCreatingFamily}
         onSubmit={onCreateFamilySubmit}
+        isEditMode={isEditMode} // Pass isEditMode prop
+        initialValues={editingFamily} // Pass editingFamily as initialValues
         wards={formattedWardsList}
+        parishId={parishId}
       />
     </div>
   );

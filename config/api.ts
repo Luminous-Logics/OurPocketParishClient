@@ -19,6 +19,7 @@ const FAMILIES = {
   BY_WARD: "/families/ward/:wardId",
   CREATE: "/families", // New endpoint for creating families
   GET_BY_ID: "/families/:id", // New endpoint for getting family by ID
+  UPDATE: "/families/:id", // Endpoint for updating a family
 };
 
 const PRAYER_REQUESTS = {
@@ -40,11 +41,19 @@ const WARDS = {
 const PARISHIONERS = {
   BY_FAMILY: "/parishioners/family/:familyId",
   CREATE: "/parishioners",
+  UPDATE: "/parishioners/:id", // New endpoint for updating a parishioner
 };
 const PARISH = {
   LIST: "/parishes",
   DETAILS: (parishId: string) => `/parishes/${parishId}`,
 };
+
+const BIBLE = {
+  BOOKS: (bibleId: string) => `/bible/bibles/${bibleId}/books`,
+  CHAPTERS: (bibleId: string, bookId: string) => `/bible/bibles/${bibleId}/books/${bookId}/chapters`,
+  CHAPTER_CONTENT: (bibleId: string, chapterId: string) => `/bible/bibles/${bibleId}/chapters/${chapterId}/verses`,
+};
+
 export const API_ENDPOINTS = {
   AUTH,
   ROLES,
@@ -52,5 +61,6 @@ export const API_ENDPOINTS = {
   PRAYER_REQUESTS,
   WARDS,
   PARISHIONERS,
-  PARISH
+  PARISH,
+  BIBLE
 };

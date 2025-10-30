@@ -5,13 +5,6 @@ import Button from "@/components/Button";
 import { Card } from "@/components/Card";
 import Badge from "@/components/Badge";
 import { httpServerGet } from "@/lib/api";
-import {
-  Ward,
-  Family,
-  Parishioner,
-  ParishionersByFamilyResponse,
-  FamiliesByWardResponse,
-} from "@/types";
 import { useAppSelector, useAppDispatch } from "@/hooks";
 import toaster from "@/lib/toastify";
 import { createWard, updateWard } from "@/lib/actions/wards";
@@ -31,6 +24,13 @@ import {
   searchWards,
   clearSearchResults,
 } from "@/store/slices/wards";
+import {
+  Ward,
+  Family,
+  Parishioner,
+  ParishionersByFamilyResponse,
+  FamiliesByWardResponse,
+} from "@/types";
 
 const WardsPageComp = () => {
   const dispatch = useAppDispatch();
@@ -76,13 +76,13 @@ const WardsPageComp = () => {
 
   // Get parish ID from user profile
   const profile = useAppSelector((state) => state.profile.userProfile);
-  const parishId = Number(profile?.parish?.parish_id || 1);
+  const parishId = Number(profile?.parish?.parish_id) ?? null;
 
   // React Hook Form for Create Ward Modal
   const createWardHookForm = useForm<CreateWardFormType>({
     resolver: zodResolver(createWardSchema),
     defaultValues: {
-      parish_id: parishId,
+      parish_id: Number(parishId) || null,
       ward_name: "",
       ward_number: "",
       description: "",
@@ -91,8 +91,11 @@ const WardsPageComp = () => {
     },
   });
 
-  const { reset: resetCreateWardForm } = createWardHookForm;
-
+  const {
+    reset: resetCreateWardForm,
+    formState: { errors },
+  } = createWardHookForm;
+  console.log(errors);
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -105,8 +108,8 @@ const WardsPageComp = () => {
   // Fetch wards from Redux when component mounts or page changes
   useEffect(() => {
     if (!parishId || debouncedSearchQuery) return;
-    if(wardsList.length === 0) {
-    dispatch(fetchWardsList(parishId, currentPage, pageSize));
+    if (wardsList.length === 0) {
+      dispatch(fetchWardsList(parishId, currentPage, pageSize));
     }
   }, [dispatch, parishId, currentPage, debouncedSearchQuery]);
 
@@ -288,7 +291,9 @@ const WardsPageComp = () => {
         setShowCreateModal(false);
         setSelectedWardForEdit(null);
         // Refresh wards list using Redux
-        dispatch(fetchWardsList(parishId, 1, pageSize));
+        if (parishId) {
+          dispatch(fetchWardsList(parishId, 1, pageSize));
+        }
       } else {
         toaster.error(result.error?.message || "Operation failed");
       }
@@ -299,7 +304,7 @@ const WardsPageComp = () => {
       setIsCreating(false);
     }
   };
-
+  console.log(parishId, "parishId");
   return (
     <div className="wards-page-content">
       <div className="page-header">
@@ -313,13 +318,15 @@ const WardsPageComp = () => {
             )
           </p>
         </div>
-        <Button
-          variant="primary"
-          icon={<Plus />}
-          onClick={() => handleOpenCreateModal()}
-        >
-          Add Ward
-        </Button>
+        {parishId !== null && (
+          <Button
+            variant="primary"
+            icon={<Plus />}
+            onClick={() => handleOpenCreateModal()}
+          >
+            Add Ward
+          </Button>
+        )}
       </div>
 
       <div className="wards-controls-wrapper">

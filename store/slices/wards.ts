@@ -69,7 +69,7 @@ export const {
 export default wardsSlice.reducer;
 
 // Fetch paginated wards
-export function fetchWardsList(parishId: number, page: number = 1, limit: number = 20) {
+export function fetchWardsList(parishId?: number, page: number = 1, limit: number = 20) {
   return async function (dispatch: Dispatch) {
     try {
       dispatch(setLoading(true));
